@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpStaticServer", "HttpStaticServer\HttpStaticServer.csproj", "{71524440-0300-4C32-8C6A-2C1543922782}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{71524440-0300-4C32-8C6A-2C1543922782}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71524440-0300-4C32-8C6A-2C1543922782}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71524440-0300-4C32-8C6A-2C1543922782}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71524440-0300-4C32-8C6A-2C1543922782}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

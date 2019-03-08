@@ -1,0 +1,10 @@
+### IDE ###
+.idea
+
+### build ###
+*/bin/
+*/obj/
+
+### local files ###
+*.user
+
