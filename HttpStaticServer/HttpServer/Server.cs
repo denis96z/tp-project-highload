@@ -52,24 +52,31 @@ namespace HttpStaticServer.HttpServer
                 new Thread(WorkerFunc).Start(i);
             }
 
+            var threadIndex = 0;
+            
             while (true)
             {
                 var socket = listener.Accept();
-                var isHandled = false;
                 
-                while (!isHandled)
+                while (true)
                 {
-                    for (var i = 0; i < _serverInfo.NumThreads; ++i)
+                    if (threadIndex == _serverInfo.NumThreads)
                     {
-                        if (_threadInfos[i].IsSet) continue;
-
-                        _threadInfos[i].IsSet = true;
-                        _threadInfos[i].Socket = socket;
-                        _threadInfos[i].EventHandle.Set();
-
-                        isHandled = true;
-                        break;
+                        threadIndex = 0;
                     }
+                    
+                    if (_threadInfos[threadIndex].IsSet)
+                    {
+                        ++threadIndex;
+                        continue;
+                    }
+
+                    _threadInfos[threadIndex].IsSet = true;
+                    _threadInfos[threadIndex].Socket = socket;
+                    _threadInfos[threadIndex].EventHandle.Set();
+
+                    ++threadIndex;
+                    break;
                 }
             }
         }
