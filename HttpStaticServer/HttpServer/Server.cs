@@ -11,6 +11,7 @@ namespace HttpStaticServer.HttpServer
     {
         public int Port;
         public int NumThreads;
+        public string BasePath;
     }
 
     public class Server
@@ -79,14 +80,33 @@ namespace HttpStaticServer.HttpServer
 
             var ok = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello World!\r\n\r\n");
 
-            const int bufferLen = 512;
-            var reqBuffer = new byte[bufferLen];
+            const int reqBufferLen = 256;
+            var reqBuffer = new byte[reqBufferLen];
 
+            const int pathBufferLen = 128;
+            var pathBuffer = new byte[pathBufferLen];
+            
             while (true)
             {
                 _threadInfos[workerIndex].EventHandle.WaitOne();
 
                 var socket = _threadInfos[workerIndex].Socket;
+
+                socket.Receive(reqBuffer);
+                if (reqBuffer[0] == 'H')
+                {
+                    var pathLen = ParsePath(pathBuffer, reqBuffer, 5);
+                    //Console.WriteLine(Encoding.UTF8.GetString(pathBuffer, 0, pathLen));
+                }
+                else if (reqBuffer[0] == 'G')
+                {
+                    var pathLen = ParsePath(pathBuffer, reqBuffer, 4);
+                    //Console.WriteLine(Encoding.UTF8.GetString(pathBuffer, 0, pathLen));
+                }
+                /*else
+                {
+                    
+                }*/
 
                 socket.Send(ok);
                 socket.Close();
@@ -96,25 +116,53 @@ namespace HttpStaticServer.HttpServer
             }
         }
 
-        private static string ParsePath(IReadOnlyList<byte> buffer, int startIndex)
+        private static int ParsePath(byte[] pathBuffer, byte[] buffer, int startIndex)
         {
-            var pathBuilder = new StringBuilder();
-
-            for (var i = startIndex; i < buffer.Count; ++i)
+            var pathLen = 0;
+            
+            for (var curIndex = startIndex; curIndex < buffer.Length; ++curIndex)
             {
-                var current = buffer[i];
+                var current = buffer[curIndex];
 
-                if (current == ' ')
+                if (current == '+')
                 {
-                    return pathBuilder.ToString();
+                    buffer[curIndex] = ((byte) ' ');
+                    ++curIndex;
+                }
+                /*else if (current == '%')
+                {
+                    var a = ConvertHexByte(buffer[curIndex + 1]) * 10; 
+                    var b = ConvertHexByte(buffer[curIndex + 2]);
+                    curIndex += 3;
+                }*/
+                else if (current == ' ')
+                {
+                    return pathLen;
                 }
 
-                pathBuilder.Append(Convert.ToChar(current));
-
-                ++i;
+                pathBuffer[pathLen++] = current;
             }
 
             throw new Exception("request buffer end");
+        }
+
+        private static int ConvertHexByte(int b)
+        {
+            if (b >= '0' && b <= '9')
+            {
+                Console.WriteLine((byte)'0');
+                b -= (byte) '0';
+            }
+            else if (b >= 'a' && b <= 'f')
+            {
+                b -= (byte) 'a';
+            }
+            else
+            {
+                b -= (byte) 'A';
+            }
+
+            return b;
         }
     }
 }
