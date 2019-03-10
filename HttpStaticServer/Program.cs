@@ -1,4 +1,5 @@
 ﻿using System;
+using HttpStaticServer.Config;
 using HttpStaticServer.HttpServer;
 
 namespace HttpStaticServer
@@ -7,12 +8,8 @@ namespace HttpStaticServer
     {
         private static void Main(string[] args)
         {
-            new Server(new ServerInfo()
-            {
-                Port = 8080,
-                NumThreads = 64,
-                BasePath = "/home/denis/Documents"
-            }).Run();
+            var config = new ConfigReader().GetConfig();
+            new Server(config).Run();
         }
     }
 }
