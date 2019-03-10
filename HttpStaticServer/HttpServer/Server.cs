@@ -123,23 +123,31 @@ namespace HttpStaticServer.HttpServer
             var endLine = Encoding.UTF8.GetBytes("\r\n");
             var doubleEndLine = Encoding.UTF8.GetBytes("\r\n\r\n");
 
-            (string, bool) MakePath(byte[] buffer, int pathLen)
+            (string, bool, bool) MakePath(byte[] buffer, int pathLen)
             {
                 var path = Encoding.UTF8.GetString(buffer, 0, pathLen);
 
                 if (path.Contains("../"))
                 {
-                    return (null, false);
+                    return (null, false, false);
                 }
+
+                var isIndex = false;
                 
                 if (path[path.Length - 1] == '/')
                 {
                     path = $"{path}index.html";
+                    isIndex = true;
                 }
                 
-                Console.WriteLine($"PATH: {path}"); //TODO remove log
+                Console.WriteLine($"PATH: {path}\nRAW:"); //TODO remove log
+                foreach (var b in buffer)
+                {
+                    Console.Write($"{b} ");
+                }
+                Console.WriteLine();
 
-                return (path, true);
+                return (path, true, isIndex);
             }
 
             byte[] SelectOkResponse(string ext)
@@ -210,7 +218,7 @@ namespace HttpStaticServer.HttpServer
                 {
                     var pathLen = ParsePath(pathBuffer, reqBuffer, 5);
                     
-                    var (path, valid) = MakePath(pathBuffer, pathLen);
+                    var (path, valid, isIndex) = MakePath(pathBuffer, pathLen);
                     if (!valid)
                     {
                         socket.Send(forbidden);
@@ -222,11 +230,18 @@ namespace HttpStaticServer.HttpServer
                         var fileInfo = new FileInfo(_serverInfo.BasePath + path);
                         if (!fileInfo.Exists)
                         {
-                            socket.Send(notFound);
-                            SendDate();
-                            socket.Send(endLine);
-                        
-                            Console.WriteLine("RESPONSE: 404");
+                            if (isIndex)
+                            {
+                                socket.Send(forbidden);
+                                SendDate();
+                                socket.Send(endLine);
+                            }
+                            else
+                            {
+                                socket.Send(notFound);
+                                SendDate();
+                                socket.Send(endLine);
+                            }
                         }
                         else
                         {
@@ -234,8 +249,6 @@ namespace HttpStaticServer.HttpServer
                             SendContentLength(fileInfo.Length);
                             SendDate();
                             socket.Send(endLine);
-                        
-                            Console.WriteLine("RESPONSE: 200");
                         }
                     }
                 }
@@ -243,7 +256,7 @@ namespace HttpStaticServer.HttpServer
                 {
                     var pathLen = ParsePath(pathBuffer, reqBuffer, 4);
                     
-                    var (path, valid) = MakePath(pathBuffer, pathLen);
+                    var (path, valid, isIndex) = MakePath(pathBuffer, pathLen);
                     if (!valid)
                     {
                         socket.Send(forbidden);
@@ -255,11 +268,18 @@ namespace HttpStaticServer.HttpServer
                         var fileInfo = new FileInfo(_serverInfo.BasePath + path);
                         if (!fileInfo.Exists)
                         {
-                            socket.Send(notFound);
-                            SendDate();
-                            socket.Send(endLine);
-
-                            Console.WriteLine("RESPONSE: 404");
+                            if (isIndex)
+                            {
+                                socket.Send(forbidden);
+                                SendDate();
+                                socket.Send(endLine);
+                            }
+                            else
+                            {
+                                socket.Send(notFound);
+                                SendDate();
+                                socket.Send(endLine);
+                            }
                         }
                         else
                         {
@@ -269,8 +289,6 @@ namespace HttpStaticServer.HttpServer
                             socket.Send(endLine);
                             socket.SendFile(fileInfo.FullName);
                             socket.Send(doubleEndLine);
-
-                            Console.WriteLine("RESPONSE: 200");
                         }
                     }
                 }
@@ -279,8 +297,6 @@ namespace HttpStaticServer.HttpServer
                     socket.Send(notAllowed);
                     SendDate();
                     socket.Send(endLine);
-                    
-                    Console.WriteLine("RESPONSE: 405");
                 }
                 
                 socket.Close();
