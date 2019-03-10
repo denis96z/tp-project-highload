@@ -4,11 +4,11 @@ using HttpStaticServer.HttpServer;
 
 namespace HttpStaticServer.Config
 {
-    public class ConfigReader
+    public static class ConfigReader
     {
         private const string ConfigFilename = "/home/denis/Documents/highload_c_sharp/HttpStaticServer/httpd.conf";
 
-        public ServerInfo GetConfig()
+        public static ServerInfo GetConfig()
         {
             var lines = File.ReadAllLines(ConfigFilename);
 

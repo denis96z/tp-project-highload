@@ -8,7 +8,7 @@ namespace HttpStaticServer
     {
         private static void Main(string[] args)
         {
-            var config = new ConfigReader().GetConfig();
+            var config = ConfigReader.GetConfig();
             new Server(config).Run();
         }
     }
