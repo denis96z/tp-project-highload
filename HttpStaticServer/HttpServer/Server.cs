@@ -132,17 +132,13 @@ namespace HttpStaticServer.HttpServer
                     return (null, false, false);
                 }
 
-                var isIndex = false;
-                
-                if (path[path.Length - 1] == '/')
+                if (path[path.Length - 1] != '/')
                 {
-                    path = $"{path}index.html";
-                    isIndex = true;
+                    return (path, true, false);
                 }
                 
-                Console.WriteLine($"PATH: {path}\nRAW:"); //TODO remove log
-
-                return (path, true, isIndex);
+                path = $"{path}index.html";
+                return (path, true, true);
             }
 
             byte[] SelectOkResponse(string ext)
@@ -207,7 +203,6 @@ namespace HttpStaticServer.HttpServer
                 }
 
                 var reqLen = socket.Receive(reqBuffer);
-                Console.WriteLine(Encoding.UTF8.GetString(reqBuffer, 0, reqLen)); //TODO remove log
                 
                 if (reqBuffer[0] == 'H')
                 {
