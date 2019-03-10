@@ -11,7 +11,7 @@ namespace HttpStaticServer
             {
                 Port = 8080,
                 NumThreads = 64,
-                BasePath = "."
+                BasePath = "/home/denis/Documents"
             }).Run();
         }
     }

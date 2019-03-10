@@ -106,20 +106,64 @@ namespace HttpStaticServer.HttpServer
             const string gifHeader = contentType + "image/gif" + "\r\n";
             const string swfHeader = contentType + "application/x-shockwave-flash" + "\r\n";
 
-            IEnumerable<byte> MakeOk(string contentTypeHeader)
+            byte[] MakeOk(string contentTypeHeader)
             {
-                return Encoding.UTF8
-                    .GetBytes(okHeader + srvHeader + connectionHeader +
-                              contentTypeHeader + contentLength);
+                return Encoding.UTF8.GetBytes(okHeader + srvHeader + connectionHeader + contentTypeHeader);
             }
 
-            var okHTML = MakeOk(htmlHeader);
-            var okCSS = MakeOk(cssHeader);
-            var okJS = MakeOk(jsHeader);
-            var okJPEG = MakeOk(jpegHeader);
-            var okPNG = MakeOk(pngHeader);
-            var okGIF = MakeOk(gifHeader);
-            var okSWF = MakeOk(swfHeader);
+            var okHtml = MakeOk(htmlHeader);
+            var okCss = MakeOk(cssHeader);
+            var okJs = MakeOk(jsHeader);
+            var okJpeg = MakeOk(jpegHeader);
+            var okPng = MakeOk(pngHeader);
+            var okGif = MakeOk(gifHeader);
+            var okSwf = MakeOk(swfHeader);
+
+            var endLine = Encoding.UTF8.GetBytes("\r\n");
+            var doubleEndLine = Encoding.UTF8.GetBytes("\r\n\r\n");
+
+            string MakePath(byte[] buffer, int pathLen)
+            {
+                var path = Encoding.UTF8.GetString(buffer, 0, pathLen);
+                
+                if (path[path.Length - 1] == '/')
+                {
+                    path = $"{path}index.html";
+                }
+
+                return path;
+            }
+
+            byte[] SelectOkResponse(string ext)
+            {
+                switch (ext)
+                {                    
+                    case ".html":
+                        return okHtml;
+                    
+                    case ".css":
+                        return okCss;
+                    
+                    case ".js":
+                        return okJs;
+                    
+                    case ".jpeg":
+                    case ".jpg":
+                        return okJpeg;
+                        
+                    case ".png":
+                        return okPng;
+                    
+                    case ".gif":
+                        return okGif;
+                    
+                    case ".swf":
+                        return okSwf;
+                    
+                    default:
+                        return okHtml; //TODO text/plain
+                }
+            }
 
             var notFound = Encoding.UTF8.GetBytes(notFoundHeader + srvHeader +
                                                   connectionHeader + contentLengthZeroHeader);
@@ -141,67 +185,66 @@ namespace HttpStaticServer.HttpServer
                 void SendDate()
                 {
                     var date = DateTime.Now.ToUniversalTime().ToString("R"); //TODO optimize
-                    socket.Send(Encoding.UTF8.GetBytes($"Date: {date}\r\n\r\n")); //TODO optimize
+                    socket.Send(Encoding.UTF8.GetBytes($"Date: {date}\r\n")); //TODO optimize
                 }
 
-                void SendNotFound()
+                void SendContentLength(long value)
                 {
-                    socket.Send(notFound);
-                    SendDate();
-                }
-
-                void SendNotAllowed()
-                {
-                    socket.Send(notAllowed);
-                    SendDate();
+                    socket.Send(Encoding.UTF8.GetBytes($"Content-Length: {value}\r\n")); //TODO optimize
                 }
 
                 socket.Receive(reqBuffer);
                 if (reqBuffer[0] == 'H')
                 {
                     var pathLen = ParsePath(pathBuffer, reqBuffer, 5);
+                    var path = MakePath(pathBuffer, pathLen);
                     
-                    var path = Encoding.UTF8.GetString(pathBuffer, 0, pathLen);
-                    if (path[path.Length - 1] == '/')
-                    {
-                        path = $"{path}index.html";
-                    }
                     //Console.WriteLine(path);
                     
                     var fileInfo = new FileInfo(_serverInfo.BasePath + path);
                     if (!fileInfo.Exists)
                     {
-                        SendNotFound();
+                        socket.Send(notFound);
+                        SendDate();
+                        socket.Send(endLine);
                     }
-                    /*else
+                    else
                     {
-                        
-                    }*/
+                        socket.Send(SelectOkResponse(fileInfo.Extension));
+                        SendContentLength(fileInfo.Length);
+                        SendDate();
+                        socket.Send(endLine);
+                    }
                 }
                 else if (reqBuffer[0] == 'G')
                 {
                     var pathLen = ParsePath(pathBuffer, reqBuffer, 4);
+                    var path = MakePath(pathBuffer, pathLen);
                     
-                    var path = Encoding.UTF8.GetString(pathBuffer, 0, pathLen);
-                    if (path[path.Length - 1] == '/')
-                    {
-                        path = $"{path}index.html";
-                    }
                     //Console.WriteLine(path);
                     
                     var fileInfo = new FileInfo(_serverInfo.BasePath + path);
                     if (!fileInfo.Exists)
                     {
-                        SendNotFound();
+                        socket.Send(notFound);
+                        SendDate();
+                        socket.Send(endLine);
                     }
-                    /*else
+                    else
                     {
-                        
-                    }*/
+                        socket.Send(SelectOkResponse(fileInfo.Extension));
+                        SendContentLength(fileInfo.Length);
+                        SendDate();
+                        socket.Send(endLine);
+                        socket.SendFile(fileInfo.FullName);
+                        socket.Send(doubleEndLine);
+                    }
                 }
                 else
                 {
-                    SendNotAllowed();
+                    socket.Send(notAllowed);
+                    SendDate();
+                    socket.Send(endLine);
                 }
                 
                 socket.Close();
@@ -238,7 +281,7 @@ namespace HttpStaticServer.HttpServer
                 pathBuffer[pathLen++] = current;
             }
 
-            throw new Exception("request buffer end");
+            return -1;
         }
 
         private static int ConvertHexByte(int b)
