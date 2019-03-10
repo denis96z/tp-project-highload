@@ -125,7 +125,7 @@ namespace HttpStaticServer.HttpServer
 
             (string, bool) MakePath(byte[] buffer, int pathLen)
             {
-                var path = Encoding.ASCII.GetString(buffer, 0, pathLen);
+                var path = Encoding.UTF8.GetString(buffer, 0, pathLen);
 
                 if (path.Contains("../"))
                 {
@@ -137,8 +137,7 @@ namespace HttpStaticServer.HttpServer
                     path = $"{path}index.html";
                 }
                 
-                Console.WriteLine($"PATH: {path}");
-                Console.WriteLine($"PATH HAS SPACE: {path.Contains(' ')}");
+                Console.WriteLine($"PATH: {path}"); //TODO remove log
 
                 return (path, true);
             }
@@ -306,8 +305,9 @@ namespace HttpStaticServer.HttpServer
                 }
                 else if (current == '%')
                 {
-                    var a = ConvertHexByte(buffer[curIndex + 1]) * 10; 
+                    var a = ConvertHexByte(buffer[curIndex + 1]) * 16; 
                     var b = ConvertHexByte(buffer[curIndex + 2]);
+                    
                     current = (byte)(a + b);
                     curIndex += 2;
                 }
