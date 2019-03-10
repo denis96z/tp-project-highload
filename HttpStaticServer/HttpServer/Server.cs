@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -53,18 +55,18 @@ namespace HttpStaticServer.HttpServer
             }
 
             var threadIndex = 0;
-            
+
             while (true)
             {
                 var socket = listener.Accept();
-                
+
                 while (true)
                 {
                     if (threadIndex == _serverInfo.NumThreads)
                     {
                         threadIndex = 0;
                     }
-                    
+
                     if (_threadInfos[threadIndex].IsSet)
                     {
                         ++threadIndex;
@@ -85,37 +87,123 @@ namespace HttpStaticServer.HttpServer
         {
             var workerIndex = (int) i;
 
-            var ok = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello World!\r\n\r\n");
+            const string okHeader = "HTTP/1.1 200 OK\r\n";
+            const string notFoundHeader = "HTTP/1.1 404 Not Found\r\n";
+            const string notAllowedHeader = "HTTP/1.1 405 Method Not Allowed\r\n";
+            
+            const string srvHeader = "Server: srv\r\n";
+            const string connectionHeader = "Connection: Close\r\n";
+
+            const string contentLength = "Content-Length: ";
+            const string contentLengthZeroHeader = contentLength + "0" +"\r\n";
+
+            const string contentType = "Content-Type: ";
+            const string htmlHeader = contentType + "text/html" + "\r\n";
+            const string cssHeader = contentType + "text/css" + "\r\n";
+            const string jsHeader = contentType + "application/javascript" + "\r\n";
+            const string jpegHeader = contentType + "image/jpeg" + "\r\n";
+            const string pngHeader = contentType + "image/png" + "\r\n";
+            const string gifHeader = contentType + "image/gif" + "\r\n";
+            const string swfHeader = contentType + "application/x-shockwave-flash" + "\r\n";
+
+            IEnumerable<byte> MakeOk(string contentTypeHeader)
+            {
+                return Encoding.UTF8
+                    .GetBytes(okHeader + srvHeader + connectionHeader +
+                              contentTypeHeader + contentLength);
+            }
+
+            var okHTML = MakeOk(htmlHeader);
+            var okCSS = MakeOk(cssHeader);
+            var okJS = MakeOk(jsHeader);
+            var okJPEG = MakeOk(jpegHeader);
+            var okPNG = MakeOk(pngHeader);
+            var okGIF = MakeOk(gifHeader);
+            var okSWF = MakeOk(swfHeader);
+
+            var notFound = Encoding.UTF8.GetBytes(notFoundHeader + srvHeader +
+                                                  connectionHeader + contentLengthZeroHeader);
+            var notAllowed = Encoding.UTF8.GetBytes(notAllowedHeader + srvHeader +
+                                                    connectionHeader + contentLengthZeroHeader);
 
             const int reqBufferLen = 256;
             var reqBuffer = new byte[reqBufferLen];
 
             const int pathBufferLen = 128;
             var pathBuffer = new byte[pathBufferLen];
-            
+
             while (true)
             {
                 _threadInfos[workerIndex].EventHandle.WaitOne();
 
                 var socket = _threadInfos[workerIndex].Socket;
 
+                void SendDate()
+                {
+                    var date = DateTime.Now.ToUniversalTime().ToString("R"); //TODO optimize
+                    socket.Send(Encoding.UTF8.GetBytes($"Date: {date}\r\n\r\n")); //TODO optimize
+                }
+
+                void SendNotFound()
+                {
+                    socket.Send(notFound);
+                    SendDate();
+                }
+
+                void SendNotAllowed()
+                {
+                    socket.Send(notAllowed);
+                    SendDate();
+                }
+
                 socket.Receive(reqBuffer);
                 if (reqBuffer[0] == 'H')
                 {
                     var pathLen = ParsePath(pathBuffer, reqBuffer, 5);
-                    //Console.WriteLine(Encoding.UTF8.GetString(pathBuffer, 0, pathLen));
+                    
+                    var path = Encoding.UTF8.GetString(pathBuffer, 0, pathLen);
+                    if (path[path.Length - 1] == '/')
+                    {
+                        path = $"{path}index.html";
+                    }
+                    //Console.WriteLine(path);
+                    
+                    var fileInfo = new FileInfo(_serverInfo.BasePath + path);
+                    if (!fileInfo.Exists)
+                    {
+                        SendNotFound();
+                    }
+                    /*else
+                    {
+                        
+                    }*/
                 }
                 else if (reqBuffer[0] == 'G')
                 {
                     var pathLen = ParsePath(pathBuffer, reqBuffer, 4);
-                    //Console.WriteLine(Encoding.UTF8.GetString(pathBuffer, 0, pathLen));
-                }
-                /*else
-                {
                     
-                }*/
-
-                socket.Send(ok);
+                    var path = Encoding.UTF8.GetString(pathBuffer, 0, pathLen);
+                    if (path[path.Length - 1] == '/')
+                    {
+                        path = $"{path}index.html";
+                    }
+                    //Console.WriteLine(path);
+                    
+                    var fileInfo = new FileInfo(_serverInfo.BasePath + path);
+                    if (!fileInfo.Exists)
+                    {
+                        SendNotFound();
+                    }
+                    /*else
+                    {
+                        
+                    }*/
+                }
+                else
+                {
+                    SendNotAllowed();
+                }
+                
                 socket.Close();
 
                 _threadInfos[workerIndex].EventHandle.Reset();
@@ -126,7 +214,7 @@ namespace HttpStaticServer.HttpServer
         private static int ParsePath(byte[] pathBuffer, byte[] buffer, int startIndex)
         {
             var pathLen = 0;
-            
+
             for (var curIndex = startIndex; curIndex < buffer.Length; ++curIndex)
             {
                 var current = buffer[curIndex];
@@ -142,7 +230,7 @@ namespace HttpStaticServer.HttpServer
                     var b = ConvertHexByte(buffer[curIndex + 2]);
                     curIndex += 3;
                 }*/
-                else if (current == ' ')
+                else if (current == ' ' || current == '?')
                 {
                     return pathLen;
                 }
@@ -157,7 +245,7 @@ namespace HttpStaticServer.HttpServer
         {
             if (b >= '0' && b <= '9')
             {
-                Console.WriteLine((byte)'0');
+                Console.WriteLine((byte) '0');
                 b -= (byte) '0';
             }
             else if (b >= 'a' && b <= 'f')
