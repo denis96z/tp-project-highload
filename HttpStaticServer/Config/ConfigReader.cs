@@ -6,7 +6,7 @@ namespace HttpStaticServer.Config
 {
     public class ConfigReader
     {
-        private const string ConfigFilename = "/etc/httpd.conf";
+        private const string ConfigFilename = "/home/denis/Documents/highload_c_sharp/HttpStaticServer/httpd.conf";
 
         public ServerInfo GetConfig()
         {
@@ -14,7 +14,7 @@ namespace HttpStaticServer.Config
 
             var pPort = GetPropertyValue(lines, "port", "80");
             var pThreadLimit = GetPropertyValue(lines, "thread_limit", "256");
-            var pDocumentRoot = GetPropertyValue(lines, "document_root", "/var/www/html");
+            var pDocumentRoot = GetPropertyValue(lines, "document_root", "/var/www");
 
             var config = new ServerInfo()
             {
@@ -41,12 +41,9 @@ namespace HttpStaticServer.Config
                 if (!line.StartsWith(name)) continue;
 
                 var index = line.IndexOf(' ', startIndex);
-                if (index == -1)
-                {
-                    continue;
-                }
 
-                return line.Substring(startIndex, index - startIndex);
+                return index == -1 ? line.Substring(startIndex) :
+                    line.Substring(startIndex, index - startIndex);
             }
 
             return defaultValue;
