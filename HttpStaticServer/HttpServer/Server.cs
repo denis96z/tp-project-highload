@@ -141,11 +141,6 @@ namespace HttpStaticServer.HttpServer
                 }
                 
                 Console.WriteLine($"PATH: {path}\nRAW:"); //TODO remove log
-                foreach (var b in buffer)
-                {
-                    Console.Write($"{b} ");
-                }
-                Console.WriteLine();
 
                 return (path, true, isIndex);
             }
@@ -346,11 +341,11 @@ namespace HttpStaticServer.HttpServer
             }
             else if (b >= 'a' && b <= 'f')
             {
-                b -= (byte) 'a';
+                b -= (((byte) 'a') - 10);
             }
             else
             {
-                b -= (byte) 'A';
+                b -= (((byte) 'A') - 10);
             }
 
             return b;
