@@ -1,14 +1,11 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:2.2 as base
+FROM mcr.microsoft.com/dotnet/core/sdk:2.2-alpine
 WORKDIR /tmp
+
 COPY . .
-RUN dotnet build HttpStaticServer.sln -c Release -f netcoreapp2.2
+RUN dotnet build HttpStaticServer.sln -c Release -f netcoreapp2.2 \
+    && mv ./httpd.conf /etc/httpd.conf
 
-FROM mcr.microsoft.com/dotnet/core/runtime:2.2
-WORKDIR /tmp
+WORKDIR /tmp/HttpStaticServer/bin/Release/netcoreapp2.2
 
-COPY --from=base /tmp/HttpStaticServer/bin/Release/netcoreapp2.2 .
-COPY ./httpd.conf /etc/httpd.conf
-COPY ./httptest /var/www/html/httptest
-
-CMD ["dotnet", "/tmp/HttpStaticServer.dll"]
+CMD ["dotnet", "./HttpStaticServer.dll"]
 EXPOSE 80
