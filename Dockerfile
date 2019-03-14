@@ -10,7 +10,5 @@ COPY --from=base /tmp/HttpStaticServer/bin/Release/netcoreapp2.2 .
 COPY ./httpd.conf /etc/httpd.conf
 COPY ./httptest /var/www/html/httptest
 
-RUN ls -al /var/www
-
 CMD ["dotnet", "/tmp/HttpStaticServer.dll"]
 EXPOSE 80
